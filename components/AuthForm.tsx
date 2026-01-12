@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import Link from "next/link"
 
 // UI Components
 import { Button } from "@/components/ui/button"
@@ -31,12 +32,12 @@ const signUpSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   preferredName: z.string().optional(),
-  profileImage: z.instanceof(File, "Please upload a valid image file").optional(),
+  profileImage: z.instanceof(File).optional(),
 })
 
 const AuthForm = ({ type }: AuthFormProps) => {
-  // You can change these to match your company branding
-  const companyLogo = "/logo-image.jpg" // <-- Replace this with your logo
+  // You can change these later to match your company branding
+  const companyLogo = "/logo-image.jpg" 
   const companyName = "Partner AI"
 
   if (type === 'sign-up') {
@@ -174,6 +175,17 @@ const AuthForm = ({ type }: AuthFormProps) => {
           <Button type="submit" className="w-full">
             Sign In
           </Button>
+          <div className="text-center mt-4">
+            {type === "sign-in" ? (
+              <Link href="/sign-up" className="text-blue-600 hover:underline">
+                Don't have an account? Sign Up
+              </Link>
+            ) : (
+              <Link href="/sign-in" className="text-blue-600 hover:underline">
+                Have an account? Sign In
+              </Link>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>
