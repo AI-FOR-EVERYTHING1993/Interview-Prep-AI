@@ -5,8 +5,8 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from "firebase/auth"
-import { initializeApp, getApps } from "firebase/app"
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/app/(root)/firebase/client"
 
 // UI Components
 import { Button } from "@/components/ui/button"
@@ -21,32 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
-// Initialize Firebase outside component to avoid re-initialization
-let firebaseApp: any = null;
-let firebaseAuth: any = null;
 
-const getFirebaseAuth = () => {
-  if (!firebaseAuth) {
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    };
-    
-    if (getApps().length === 0) {
-      firebaseApp = initializeApp(firebaseConfig);
-    } else {
-      firebaseApp = getApps()[0];
-    }
-    
-    firebaseAuth = getAuth(firebaseApp);
-  }
-  
-  return firebaseAuth;
-};
 
 interface AuthFormProps {
   type: 'sign-in' | 'sign-up'
@@ -103,27 +78,35 @@ const AuthForm = ({ type }: AuthFormProps) => {
   })
 
   const onSignUpSubmit = async (values: z.infer<typeof signUpSchema>) => {
-    console.log('Sign up form submitted:', values);
-    
-    // Simple success message and navigation
-    toast.success("Account created successfully! Welcome to Partner AI!");
-    
-    // Force navigation to home page
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1000);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      
+      console.log('User created:', userCredential.user);
+      toast.success("Account created successfully! Welcome to Partner AI!");
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      toast.error(error.message || "Failed to create account");
+    }
   }
 
   const onSignInSubmit = async (values: z.infer<typeof signInSchema>) => {
-    console.log('Sign in form submitted:', values);
-    
-    // Simple success message and navigation
-    toast.success("Signed in successfully!");
-    
-    // Force navigation to home page
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1000);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      
+      console.log('User signed in:', userCredential.user);
+      toast.success("Signed in successfully!");
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      toast.error(error.message || "Failed to sign in");
+    }
   }
 
   if (type === 'sign-up') {

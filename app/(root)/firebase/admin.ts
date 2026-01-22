@@ -1,12 +1,10 @@
-import { initializeApp } from 'firebase-admin/app';
-import { cert, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 
-
 const initFirebaseAdmin = () => {
     const apps = getApps();
-    if (apps.length) {
+    if (apps.length === 0) {
         initializeApp({
             credential: cert({
                 projectId: process.env.FIREBASE_PROJECT_ID,
@@ -15,7 +13,6 @@ const initFirebaseAdmin = () => {
             })
         });
     }
-    // Initialize the Firebase Admin SDK
     return {
         auth: getAuth(),
         db: getFirestore(),

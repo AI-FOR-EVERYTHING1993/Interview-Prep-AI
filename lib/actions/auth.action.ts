@@ -2,6 +2,7 @@
 
 import { auth, db } from "@/app/(root)/firebase/admin";
 import { cookies } from "next/headers";
+import { id } from "zod/locales";
 
 const ONE_WEEK = 7 * 24 * 60 * 60;
 
@@ -148,4 +149,40 @@ export async function setSessionCookie(idToken: string) {
         console.error('Error setting session cookie:', error);
         throw error;
     }
+}
+export async function getCurrentUser(): Promise<User | null> {
+    try {
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('session')?.value;
+
+        if (!sessionCookie) {
+            return null;
+        }
+
+        try {
+            const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+
+            const userRecord = await db.collection('users').doc(decodedClaims.uid).get();
+            if (!userRecord.exists) {
+                return null;
+            }
+
+            return {
+                ...userRecord.data(),
+                id: userRecord.id
+            } as User;
+        } catch (e) {
+            console.log(e);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+    }
+}
+
+export async function isAuthenticated(){
+    const user =  await getCurrentUser();
+    return !!user;
+
 }
