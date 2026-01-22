@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { TECHNICAL_INTERVIEWS, NON_TECHNICAL_INTERVIEWS, EXPERIENCE_LEVELS, COMPANY_TYPES } from "@/constants/interviews";
 
 enum CallStatus {
     INACTIVE = "INACTIVE",
@@ -18,13 +20,37 @@ interface AgentProps {
 const Agent = ({ userName = "User" }: AgentProps) => {
     const isSpeaking = true;
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
-
-    const messages = [
-        "Hello, welcome to your interview preparation session.",
-        "What is your name?",
-        "My name is Thion Jey, nice to meet you.",
-    ];
-
+    const searchParams = useSearchParams();
+    
+    // Get interview parameters from URL
+    const category = searchParams.get('category');
+    const level = searchParams.get('level');
+    const company = searchParams.get('company');
+    
+    // Find selected interview details
+    const allInterviews = [...TECHNICAL_INTERVIEWS, ...NON_TECHNICAL_INTERVIEWS];
+    const selectedInterview = allInterviews.find(interview => interview.id === category);
+    const selectedLevel = EXPERIENCE_LEVELS.find(l => l.id === level);
+    const selectedCompany = COMPANY_TYPES.find(c => c.id === company);
+    
+    // Dynamic messages based on selection
+    const getCustomMessages = () => {
+        if (!selectedInterview) {
+            return ["Hello, welcome to your interview preparation session.", "Let's get started!"];
+        }
+        
+        const interviewType = selectedInterview.name;
+        const experienceLevel = selectedLevel?.name || "";
+        const companyType = selectedCompany?.name || "";
+        
+        return [
+            `Hello, welcome to your ${interviewType} interview preparation.`,
+            `This session is tailored for ${experienceLevel} positions at ${companyType} companies.`,
+            `Let's begin with some questions relevant to ${interviewType}. Are you ready?`
+        ];
+    };
+    
+    const messages = getCustomMessages();
     const lastMessage = messages[messages.length - 1];
 
     
