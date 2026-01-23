@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import React from "react";
 import Image from "next/image";
 import Link from "next/link"
-import { Inter } from "next/font/google";
 import { dummyInterviews } from "@/constants";
 import InterviewCard from "@/components/InterviewCard";
 
@@ -32,7 +31,7 @@ const Page = () => {
       <h2 className="text-2xl font-bold">Your Interviews</h2>
       <div className="interviews-section">
         {dummyInterviews.map((interview) => (
-          <InterviewCard key={interview.id} interview={interview} />
+          <InterviewCard key={interview.id} interview={interview} buttonText="View Interview" />
         ))}
       </div>
     </section>
@@ -41,7 +40,7 @@ const Page = () => {
       <h2 className="text-2xl font-bold">Take your Interview</h2>
       <div className="interviews-section">
         {dummyInterviews.map((interview) => (
-          <InterviewCard key={interview.id} interview={interview} />
+          <InterviewCard key={interview.id} interview={interview} buttonText="Take Interview" />
         ))}
       </div>
     </section>

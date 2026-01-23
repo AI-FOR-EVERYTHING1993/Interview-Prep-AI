@@ -35,20 +35,37 @@ const InterviewSelector = () => {
   const [resumeAnalysis, setResumeAnalysis] = useState<ResumeAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [useAIRecommendations, setUseAIRecommendations] = useState(false);
+  const [uploadError, setUploadError] = useState<string>('');
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setResumeFile(file);
-      await analyzeResume(file);
+    setUploadError('');
+    
+    if (!file) return;
+    
+    // File validation
+    if (file.type !== 'application/pdf') {
+      setUploadError('Please upload a PDF file only.');
+      return;
     }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      setUploadError('File size must be less than 5MB.');
+      return;
+    }
+    
+    setResumeFile(file);
+    await analyzeResume(file);
   };
 
   const analyzeResume = async (file: File) => {
     setIsAnalyzing(true);
+    setUploadError('');
     
-    // Simulate AI analysis (replace with actual AI integration later)
-    setTimeout(() => {
+    try {
+      // Simulate AI analysis (replace with actual AI integration later)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       const mockAnalysis: ResumeAnalysis = {
         suggestedCategory: 'software-engineering',
         suggestedLevel: 'mid',
@@ -63,8 +80,24 @@ const InterviewSelector = () => {
       };
       
       setResumeAnalysis(mockAnalysis);
+    } catch (error) {
+      setUploadError('Failed to analyze resume. Please try again.');
+    } finally {
       setIsAnalyzing(false);
-    }, 2000);
+    }
+  };
+
+  const resetSelections = () => {
+    setSelection({
+      category: '',
+      type: 'technical',
+      experienceLevel: '',
+      companyType: ''
+    });
+    setResumeFile(null);
+    setResumeAnalysis(null);
+    setUseAIRecommendations(false);
+    setUploadError('');
   };
 
   const applyAIRecommendations = () => {
@@ -100,6 +133,17 @@ const InterviewSelector = () => {
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Choose Your Interview</h1>
         <p className="text-gray-600">Upload your resume for AI-powered recommendations, or select manually</p>
+        
+        {/* Reset Button */}
+        {(resumeFile || selection.category || selection.experienceLevel || selection.companyType) && (
+          <Button 
+            onClick={resetSelections}
+            variant="outline"
+            className="mt-4 text-gray-600 hover:text-gray-800"
+          >
+            🔄 Reset All Selections
+          </Button>
+        )}
       </div>
 
       {/* Resume Upload Section */}
@@ -115,6 +159,13 @@ const InterviewSelector = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* Error Message */}
+            {uploadError && (
+              <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                ⚠️ {uploadError}
+              </div>
+            )}
+            
             <div className="flex items-center justify-center w-full">
               <Label htmlFor="resume-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -142,32 +193,33 @@ const InterviewSelector = () => {
             </div>
             
             {isAnalyzing && (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-sm text-gray-600">Analyzing your resume with AI...</p>
+              <div className="text-center py-6">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                <p className="text-sm text-gray-600 font-medium">Analyzing your resume with AI...</p>
+                <p className="text-xs text-gray-500 mt-1">This may take a few moments</p>
               </div>
             )}
             
             {resumeAnalysis && (
-              <div className="space-y-4 p-4 bg-white rounded-lg border">
+              <div className="space-y-4 p-4 bg-gray-800 rounded-lg border border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-green-700">✨ AI Analysis Complete</h3>
-                  <span className="text-sm text-gray-500">{resumeAnalysis.confidence}% confidence</span>
+                  <h3 className="font-semibold text-green-400">✨ AI Analysis Complete</h3>
+                  <span className="text-sm text-gray-400">{resumeAnalysis.confidence}% confidence</span>
                 </div>
                 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <h4 className="font-medium mb-2">Recommended Interview:</h4>
-                    <p className="text-sm text-blue-600">
+                    <h4 className="font-medium mb-2 text-white">Recommended Interview:</h4>
+                    <p className="text-sm text-blue-400">
                       {allInterviews.find(i => i.id === resumeAnalysis.suggestedCategory)?.name} - {EXPERIENCE_LEVELS.find(l => l.id === resumeAnalysis.suggestedLevel)?.name}
                     </p>
                   </div>
                   
                   <div>
-                    <h4 className="font-medium mb-2">Extracted Skills:</h4>
+                    <h4 className="font-medium mb-2 text-white">Extracted Skills:</h4>
                     <div className="flex flex-wrap gap-1">
                       {resumeAnalysis.extractedSkills.slice(0, 4).map(skill => (
-                        <span key={skill} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        <span key={skill} className="px-2 py-1 bg-blue-600 text-blue-100 text-xs rounded-full">
                           {skill}
                         </span>
                       ))}
@@ -176,11 +228,11 @@ const InterviewSelector = () => {
                 </div>
                 
                 <div>
-                  <h4 className="font-medium mb-2">Resume Improvement Suggestions:</h4>
-                  <ul className="text-sm text-gray-600 space-y-1">
+                  <h4 className="font-medium mb-2 text-white">Resume Improvement Suggestions:</h4>
+                  <ul className="text-sm text-gray-300 space-y-1">
                     {resumeAnalysis.recommendations.slice(0, 3).map((rec, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-blue-500 mt-1">•</span>
+                        <span className="text-blue-400 mt-1">•</span>
                         {rec}
                       </li>
                     ))}
@@ -202,23 +254,23 @@ const InterviewSelector = () => {
 
       {/* Interview Type Toggle */}
       <div className="flex justify-center">
-        <div className="flex bg-gray-100 rounded-lg p-1">
+        <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-600">
           <button
             onClick={() => setSelection({...selection, type: 'technical', category: ''})}
-            className={`px-6 py-2 rounded-md transition-colors ${
+            className={`px-8 py-3 rounded-md transition-all font-semibold ${
               selection.type === 'technical' 
-                ? 'bg-white shadow-sm text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-blue-600 shadow-lg text-white transform scale-105' 
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
           >
             Technical
           </button>
           <button
             onClick={() => setSelection({...selection, type: 'non-technical', category: ''})}
-            className={`px-6 py-2 rounded-md transition-colors ${
+            className={`px-8 py-3 rounded-md transition-all font-semibold ${
               selection.type === 'non-technical' 
-                ? 'bg-white shadow-sm text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-blue-600 shadow-lg text-white transform scale-105' 
+                : 'text-gray-300 hover:text-white hover:bg-gray-700'
             }`}
           >
             Non-Technical
@@ -234,15 +286,23 @@ const InterviewSelector = () => {
             <Card 
               key={interview.id}
               className={`cursor-pointer transition-all hover:shadow-md ${
-                selection.category === interview.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                selection.category === interview.id 
+                  ? 'ring-2 ring-blue-500 bg-gray-800 border-blue-500' 
+                  : 'hover:border-gray-600 bg-gray-800/50'
               }`}
               onClick={() => setSelection({...selection, category: interview.id})}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{interview.name}</CardTitle>
+                <CardTitle className={`text-lg ${
+                  selection.category === interview.id ? 'text-blue-300' : 'text-white'
+                }`}>
+                  {selection.category === interview.id && '✓ '}{interview.name}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>{interview.description}</CardDescription>
+                <CardDescription className={selection.category === interview.id ? 'text-blue-200' : 'text-gray-400'}>
+                  {interview.description}
+                </CardDescription>
               </CardContent>
             </Card>
           ))}
@@ -257,15 +317,23 @@ const InterviewSelector = () => {
             <Card 
               key={level.id}
               className={`cursor-pointer transition-all hover:shadow-md ${
-                selection.experienceLevel === level.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                selection.experienceLevel === level.id 
+                  ? 'ring-2 ring-blue-500 bg-gray-800 border-blue-500' 
+                  : 'hover:border-gray-600 bg-gray-800/50'
               }`}
               onClick={() => setSelection({...selection, experienceLevel: level.id})}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{level.name}</CardTitle>
+                <CardTitle className={`text-lg ${
+                  selection.experienceLevel === level.id ? 'text-blue-300' : 'text-white'
+                }`}>
+                  {selection.experienceLevel === level.id && '✓ '}{level.name}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>{level.description}</CardDescription>
+                <CardDescription className={selection.experienceLevel === level.id ? 'text-blue-200' : 'text-gray-400'}>
+                  {level.description}
+                </CardDescription>
               </CardContent>
             </Card>
           ))}
@@ -280,15 +348,23 @@ const InterviewSelector = () => {
             <Card 
               key={company.id}
               className={`cursor-pointer transition-all hover:shadow-md ${
-                selection.companyType === company.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                selection.companyType === company.id 
+                  ? 'ring-2 ring-blue-500 bg-gray-800 border-blue-500' 
+                  : 'hover:border-gray-600 bg-gray-800/50'
               }`}
               onClick={() => setSelection({...selection, companyType: company.id})}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{company.name}</CardTitle>
+                <CardTitle className={`text-lg ${
+                  selection.companyType === company.id ? 'text-blue-300' : 'text-white'
+                }`}>
+                  {selection.companyType === company.id && '✓ '}{company.name}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>{company.description}</CardDescription>
+                <CardDescription className={selection.companyType === company.id ? 'text-blue-200' : 'text-gray-400'}>
+                  {company.description}
+                </CardDescription>
               </CardContent>
             </Card>
           ))}
@@ -300,9 +376,9 @@ const InterviewSelector = () => {
         <Button 
           onClick={handleStartInterview}
           disabled={!isComplete}
-          className="px-8 py-3 text-lg"
+          className="px-12 py-4 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white shadow-lg transform transition-all hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
         >
-          Start Interview
+          {isComplete ? 'Start Interview →' : 'Complete Selection to Start'}
         </Button>
       </div>
     </div>

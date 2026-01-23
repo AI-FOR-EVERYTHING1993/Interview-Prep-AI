@@ -17,9 +17,10 @@ interface InterviewCardProps {
     techstack: string[];
     createdAt: string;
   };
+  buttonText?: string;
 }
 
-const InterviewCard = ({ interview }: InterviewCardProps) => {
+const InterviewCard = ({ interview, buttonText }: InterviewCardProps) => {
   const feedback = null as Feedback | null;
   const normalizedtype = /mix/gi.test(interview.type) ? "Mixed" : interview.type;
   const formattedDate = dayjs(feedback ? feedback.createdAt || interview.createdAt || Date.now() : interview.createdAt).format("MMM D, YYYY");
@@ -81,7 +82,7 @@ const InterviewCard = ({ interview }: InterviewCardProps) => {
 
         <Button className="btn-primary">
           <Link href={feedback ? `/interview/${interview.id}` : `/interview/${interview.id}`}>
-            {feedback ? "Check Feedback" : "View Interview"}
+            {buttonText || (feedback ? "Check Feedback" : "View Interview")}
           </Link>
         </Button>
       </div>
