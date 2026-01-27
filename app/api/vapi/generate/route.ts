@@ -1,7 +1,5 @@
-import { success } from "zod";
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
-import { db } from "@/app/(root)/firebase/admin";
+import { aiService } from "@/lib/ai";
+import { databaseService } from "@/lib/database";
 
 export async function GET() {
     return Response.json({ success: true, data: "THANK YOU" }, { status: 200 });
@@ -11,18 +9,9 @@ export async function POST(request: Request) {
     const {type, role, level, techstack, amount, userid} = await request.json();
 
     try {
-        const {text} = await generateText({
-            model: google('gemini-2.0-flash-001'),
-            prompt: `Prepare questions for the job interview.
-            The job role is ${role}. The experience level is ${level}.
-            The tech stack is ${techstack.join(', ')}.
-            Generate ${amount} questions.
-            Format the output as a JSON array of strings.`,
-            maxCompletionTokens: 1000,
+        const questions = await aiService.generateInterviewQuestions({
+            role, level, techstack, amount
         });
-        
-        // Parse the AI response
-        const questions = JSON.parse(text);
         
         const interview = {
             role, type, level, 
@@ -33,7 +22,7 @@ export async function POST(request: Request) {
             createdAt: new Date().toISOString(),
         }
         
-        await db.collection('interviews').add(interview);
+        await databaseService.saveInterview(interview);
 
         return Response.json({ success: true, data: questions }, { status: 200 });
         

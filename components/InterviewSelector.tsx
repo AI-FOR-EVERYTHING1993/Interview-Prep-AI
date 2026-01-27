@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, Sparkles } from "lucide-react";
+import AuthGuard from "@/components/AuthGuard";
 
 interface InterviewSelection {
   category: string;
@@ -63,23 +64,31 @@ const InterviewSelector = () => {
     setUploadError('');
     
     try {
-      // Simulate AI analysis (replace with actual AI integration later)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const formData = new FormData();
+      formData.append('resume', file);
       
-      const mockAnalysis: ResumeAnalysis = {
-        suggestedCategory: 'software-engineering',
-        suggestedLevel: 'mid',
-        extractedSkills: ['React', 'Node.js', 'Python', 'AWS', 'MongoDB'],
-        recommendations: [
-          'Add more quantified achievements (e.g., "Improved performance by 40%")',
-          'Include specific project outcomes and metrics',
-          'Strengthen your leadership experience section',
-          'Add relevant certifications or courses'
-        ],
-        confidence: 85
-      };
+      const response = await fetch('/api/resume/analyze', {
+        method: 'POST',
+        body: formData
+      });
       
-      setResumeAnalysis(mockAnalysis);
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setResumeAnalysis(result.analysis);
+        // Store analysis in sessionStorage for results page
+        sessionStorage.setItem('resumeAnalysis', JSON.stringify(result.analysis));
+        // Small delay before redirect
+        setTimeout(() => {
+          window.location.href = '/resume-results';
+        }, 500);
+      } else {
+        throw new Error('Analysis failed');
+      }
     } catch (error) {
       setUploadError('Failed to analyze resume. Please try again.');
     } finally {
@@ -119,7 +128,11 @@ const InterviewSelector = () => {
         category: selection.category,
         level: selection.experienceLevel,
         company: selection.companyType,
-        ...(resumeAnalysis && { aiAnalyzed: 'true' })
+        type: selection.type,
+        ...(resumeAnalysis && { 
+          aiAnalyzed: 'true',
+          skills: resumeAnalysis.extractedSkills.join(',') 
+        })
       });
       window.location.href = `/interview?${params.toString()}`;
     }
@@ -129,10 +142,12 @@ const InterviewSelector = () => {
   const allInterviews = [...TECHNICAL_INTERVIEWS, ...NON_TECHNICAL_INTERVIEWS];
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <AuthGuard>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto p-6 space-y-8">
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Choose Your Interview</h1>
-        <p className="text-gray-600">Upload your resume for AI-powered recommendations, or select manually</p>
+        <p className="text-gray-600 font-semibold">Upload your resume for AI-powered recommendations, or select manually</p>
         
         {/* Reset Button */}
         {(resumeFile || selection.category || selection.experienceLevel || selection.companyType) && (
@@ -381,7 +396,9 @@ const InterviewSelector = () => {
           {isComplete ? 'Start Interview →' : 'Complete Selection to Start'}
         </Button>
       </div>
-    </div>
+        </div>
+      </div>
+    </AuthGuard>
   );
 };
 

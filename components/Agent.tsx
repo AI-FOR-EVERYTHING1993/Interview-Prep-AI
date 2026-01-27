@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { VapiService } from "@/lib/vapi";
 
 enum CallStatus {
     INACTIVE = "INACTIVE",
@@ -11,20 +12,67 @@ enum CallStatus {
     ENDED = "ENDED"
 }
 
-
 interface AgentProps {
     userName?: string;
+    interviewData?: {
+        role: string;
+        level: string;
+        techstack: string[];
+    };
 }
 
-const Agent = ({ userName = "User" }: AgentProps) => {
+const Agent = ({ userName = "User", interviewData }: AgentProps) => {
     const isSpeaking = true;
     const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
-
-    const messages = [
+    const [currentCallId, setCurrentCallId] = useState<string | null>(null);
+    const [messages, setMessages] = useState<string[]>([
         "Hello, welcome to your interview preparation session.",
-        "What is your name?",
-        "My name is Thion Jey, nice to meet you.",
-    ];
+        "I'll be conducting your interview today.",
+        "Are you ready to begin?"
+    ]);
+
+    const startCall = async () => {
+        if (!interviewData) return;
+        
+        setCallStatus(CallStatus.CONNECTING);
+        
+        try {
+            const vapi = new VapiService();
+            const call = await vapi.createCall(interviewData);
+            
+            setCurrentCallId(call.id);
+            setCallStatus(CallStatus.ACTIVE);
+            
+            setMessages([
+                `Starting your ${interviewData.role} interview...`,
+                `Focus areas: ${interviewData.techstack.join(', ')}`,
+                "Good luck!"
+            ]);
+        } catch (error) {
+            console.error('Failed to start call:', error);
+            setCallStatus(CallStatus.INACTIVE);
+        }
+    };
+
+    const endCall = async () => {
+        if (!currentCallId) return;
+        
+        try {
+            const vapi = new VapiService();
+            await vapi.endCall(currentCallId);
+            
+            setCallStatus(CallStatus.ENDED);
+            setCurrentCallId(null);
+            
+            setMessages([
+                "Interview completed!",
+                "Thank you for participating.",
+                "You'll receive feedback shortly."
+            ]);
+        } catch (error) {
+            console.error('Failed to end call:', error);
+        }
+    };
 
     const lastMessage = messages[messages.length - 1];
 
@@ -68,12 +116,20 @@ const Agent = ({ userName = "User" }: AgentProps) => {
             
             <div className="w-full justify-center">
                 {callStatus !== CallStatus.ACTIVE ? (
-                    <button className="btn-call">
-                        {callStatus === CallStatus.INACTIVE || callStatus === CallStatus.ENDED ? "Start Call" : "Connecting..."}
+                    <button 
+                        className="btn-call"
+                        onClick={startCall}
+                        disabled={callStatus === CallStatus.CONNECTING}
+                    >
+                        {callStatus === CallStatus.INACTIVE ? "Start Interview" : 
+                         callStatus === CallStatus.CONNECTING ? "Connecting..." : "Start Call"}
                     </button>
                 ) : (
-                    <button className="btn-stop-call">
-                        End Call
+                    <button 
+                        className="btn-stop-call"
+                        onClick={endCall}
+                    >
+                        End Interview
                     </button>
                 )}
             </div>
