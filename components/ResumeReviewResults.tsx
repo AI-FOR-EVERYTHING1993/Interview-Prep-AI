@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,31 @@ interface ResumeReviewProps {
 }
 
 const ResumeReviewResults = ({ resumeAnalysis }: ResumeReviewProps) => {
+  const [isImproving, setIsImproving] = useState(false);
+  const [improvements, setImprovements] = useState<string | null>(null);
+
+  const improveResume = async () => {
+    setIsImproving(true);
+    try {
+      const response = await fetch('/api/resume/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'improve',
+          resumeText: 'Current resume content' // In real app, get from state
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setImprovements(data.improvements);
+      }
+    } catch (error) {
+      console.error('Error improving resume:', error);
+    } finally {
+      setIsImproving(false);
+    }
+  };
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600";
     if (score >= 60) return "text-yellow-600";
@@ -272,8 +297,13 @@ const ResumeReviewResults = ({ resumeAnalysis }: ResumeReviewProps) => {
               Start Interview Practice
             </Button>
           </Link>
-          <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-4 text-lg font-semibold">
-            Improve Resume Further
+          <Button 
+            onClick={() => improveResume()}
+            disabled={isImproving}
+            variant="outline" 
+            className="border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-4 text-lg font-semibold"
+          >
+            {isImproving ? 'Analyzing...' : 'Improve Resume Further'}
           </Button>
           <Button variant="outline" className="px-8 py-4 text-lg font-semibold">
             Schedule Expert Review Call

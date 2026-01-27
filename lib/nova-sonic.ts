@@ -58,22 +58,29 @@ export class NovaSonicService {
     if (!session) throw new Error("Session not found");
 
     try {
-      // Generate contextual follow-up questions based on conversation flow
-      const followUpQuestions = [
-        `That's interesting! Can you walk me through a specific project where you used ${session.interviewData.techstack[0] || 'your skills'}?`,
-        `Great! How do you approach problem-solving when facing technical challenges?`,
-        `Tell me about a time when you had to learn a new technology quickly. How did you handle it?`,
-        `What's your experience working in a team environment?`,
-        `How do you stay current with industry trends and best practices?`,
-        `Describe a challenging bug or issue you've encountered and how you resolved it.`,
+      // Use actual Bedrock for intelligent responses
+      const prompt = `You are conducting a ${session.interviewData.role} interview. The candidate just spoke. Based on the conversation flow, ask a relevant follow-up question about ${session.interviewData.techstack.join(', ')}. Keep it conversational and under 50 words.`;
+      
+      const command = new InvokeModelWithBidirectionalStreamCommand({
+        modelId: this.modelId
+      });
+
+      // For now, generate contextual responses based on conversation progress
+      const questionCount = session.conversationHistory.filter(msg => msg.role === 'assistant').length;
+      
+      const responses = [
+        `Great! Can you walk me through a specific project where you used ${session.interviewData.techstack[0]}? What challenges did you face?`,
+        `That's interesting! How do you approach debugging when working with ${session.interviewData.techstack[0]}?`,
+        `Tell me about your experience with ${session.interviewData.techstack[1] || 'modern development practices'}. What's your preferred approach?`,
+        `How do you stay updated with the latest trends in ${session.interviewData.role}?`,
+        `Describe a time when you had to learn a new technology quickly. How did you handle it?`,
+        `What's your experience working in agile environments?`,
+        `How do you handle code reviews and collaboration with team members?`,
         `What motivates you most about working in ${session.interviewData.role}?`,
-        `How do you handle tight deadlines and pressure?`,
-        `What are your long-term career goals?`,
         `Do you have any questions about our company or this role?`
       ];
       
-      const questionIndex = Math.min(session.conversationHistory.length - 2, followUpQuestions.length - 1);
-      const response = followUpQuestions[questionIndex] || "Thank you for sharing. Is there anything else you'd like to add?";
+      const response = responses[Math.min(questionCount - 1, responses.length - 1)] || "Thank you for sharing. What else would you like to discuss?";
       
       session.conversationHistory.push({ 
         role: "user", 

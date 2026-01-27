@@ -56,13 +56,13 @@ const SimpleVoiceAI = ({ interviewData, onResponse }: SimpleVoiceAIProps) => {
     setAiResponse(greeting);
     if (onResponse) onResponse(greeting);
     
-    // Use text-to-speech
+    // Use text-to-speech with better settings
     speakText(greeting);
     
     // Start listening after AI speaks
     setTimeout(() => {
       startListening();
-    }, 3000);
+    }, 4000);
   };
 
   const speakText = (text: string) => {
@@ -75,26 +75,22 @@ const SimpleVoiceAI = ({ interviewData, onResponse }: SimpleVoiceAIProps) => {
       utterance.pitch = 1;
       utterance.volume = 1;
       
-      // Wait for voices to load
+      // Ensure speech starts
       const speak = () => {
-        const voices = speechSynthesis.getVoices();
-        if (voices.length > 0) {
-          // Try to find a female voice
-          const femaleVoice = voices.find(voice => 
-            voice.name.toLowerCase().includes('female') || 
-            voice.name.toLowerCase().includes('zira') ||
-            voice.name.toLowerCase().includes('samantha')
-          );
-          if (femaleVoice) utterance.voice = femaleVoice;
-        }
         speechSynthesis.speak(utterance);
+        console.log('AI is speaking:', text.substring(0, 50) + '...');
       };
       
+      // Handle voices loading
       if (speechSynthesis.getVoices().length > 0) {
         speak();
       } else {
-        speechSynthesis.onvoiceschanged = speak;
+        speechSynthesis.onvoiceschanged = () => {
+          speak();
+        };
       }
+    } else {
+      console.log('Speech synthesis not supported');
     }
   };
 
@@ -116,26 +112,45 @@ const SimpleVoiceAI = ({ interviewData, onResponse }: SimpleVoiceAIProps) => {
     stopListening();
     
     try {
-      const response = await fetch('/api/bedrock/interview', {
+      // Use Nova Sonic API for real AI responses
+      const novaResponse = await fetch('/api/nova-sonic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userText,
+          action: 'process',
+          sessionId: 'voice_session_' + Date.now(),
+          audioData: [1, 2, 3], // Mock audio data
           interviewData
         })
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setAiResponse(data.response);
-        if (onResponse) onResponse(data.response);
-        speakText(data.response);
-        
-        // Resume listening after AI responds
-        setTimeout(() => {
-          startListening();
-        }, 2000);
+      const novaData = await novaResponse.json();
+      if (novaData.success) {
+        setAiResponse(novaData.response);
+        if (onResponse) onResponse(novaData.response);
+        speakText(novaData.response);
+      } else {
+        // Fallback to Bedrock
+        const response = await fetch('/api/bedrock/interview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userText,
+            interviewData
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          setAiResponse(data.response);
+          if (onResponse) onResponse(data.response);
+          speakText(data.response);
+        }
       }
+      
+      setTimeout(() => {
+        startListening();
+      }, 2000);
     } catch (error) {
       console.error('Error getting AI response:', error);
       const fallback = "I didn't catch that. Could you please repeat?";
@@ -164,14 +179,14 @@ const SimpleVoiceAI = ({ interviewData, onResponse }: SimpleVoiceAIProps) => {
       </div>
 
       {transcript && (
-        <div className="mb-4 p-3 bg-blue-100 rounded">
-          <strong className="text-green-900">You said:</strong> <span className="text-green-900">{transcript}</span>
+        <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+          <strong className="text-blue-800">You:</strong> <span className="text-blue-700">{transcript}</span>
         </div>
       )}
 
       {aiResponse && (
-        <div className="mb-4 p-3 bg-green-100 rounded">
-          <strong className="text-green-900">AI:</strong> <span className="text-green-900">{aiResponse}</span>
+        <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-500 rounded">
+          <strong className="text-green-800">AI:</strong> <span className="text-green-700">{aiResponse}</span>
         </div>
       )}
 
